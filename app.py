@@ -33,7 +33,9 @@ def clean_sql(raw):
 def run_query(sql):
     from databricks.sdk import WorkspaceClient
     from databricks.sdk.service.sql import StatementState
-    w = WorkspaceClient()
+    token = os.environ.get("DATABRICKS_TOKEN", "")
+    host  = os.environ.get("DATABRICKS_HOST", "")
+    w = WorkspaceClient(host=host, token=token)
     response = w.statement_execution.execute_statement(
         warehouse_id=WAREHOUSE_ID,
         statement=sql,
