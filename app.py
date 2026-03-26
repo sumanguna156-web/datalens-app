@@ -35,7 +35,12 @@ def run_query(sql):
     from databricks.sdk.service.sql import StatementState
     token = os.environ.get("DATABRICKS_TOKEN", "")
     host  = os.environ.get("DATABRICKS_HOST", "")
-    w = WorkspaceClient(host=host, token=token)
+    w = WorkspaceClient(
+        host=host,
+        token=token,
+        client_id=None,
+        client_secret=None
+    )
     response = w.statement_execution.execute_statement(
         warehouse_id=WAREHOUSE_ID,
         statement=sql,
