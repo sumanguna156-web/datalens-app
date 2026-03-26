@@ -1,9 +1,29 @@
-from flask import Flask, request, jsonify, render_template_string
+﻿from flask import Flask, request, jsonify, render_template_string
 import os
 import re
 
 app = Flask(__name__)
 WAREHOUSE_ID = "3142abc42fac6a4c"
+
+def translate_with_claude(question):
+    import anthropic
+    import os
+    token = os.environ.get("DATABRICKS_TOKEN", "")
+    host = os.environ.get("DATABRICKS_HOST", "").replace("https://", "")
+    client = anthropic.Anthropic(
+        api_key="unused",
+        base_url=f"https://{host}/serving-endpoints/anthropic",
+        default_headers={"Authorization": f"Bearer {token}"}
+    )
+    msg = client.messages.create(
+        model="databricks-claude-haiku-4-5",
+        max_tokens=256,
+        messages=[{
+            "role": "user",
+            "content": f"You are a SQL expert. Return ONLY raw SQL no markdown no backticks no explanation no semicolon. Table: dqm_metadata.dqm.orders. Columns: customer_id, order_id, status, region_code, order_amount, order_date. Question: {question}"
+        }]
+    )
+    return msg.content[0].text.strip()
 
 def clean_sql(raw):
     sql = re.sub(r"```sql", "", raw)
@@ -231,9 +251,8 @@ def scores():
 def ask():
     question = request.json.get("question", "")
     try:
-        prompt = f"You are a SQL expert. Return ONLY a raw SQL SELECT statement with absolutely no markdown, no backticks, no explanation, no semicolon. Just the plain SQL. Table: dqm_metadata.dqm.orders. Columns: customer_id, order_id, status, region_code, order_amount, order_date. Question: {question}"
-        rows, _ = run_query(f"SELECT ai_query('databricks-meta-llama-3-3-70b-instruct', '{prompt}') as q")
-        sql = clean_sql(rows[0][0])
+        raw_sql = translate_with_claude(question)
+        sql = clean_sql(raw_sql)
         data_rows, cols = run_query(sql)
         score_rows, score_cols = run_query("SELECT trust_score, active_violations, completeness, rule_pass_rate FROM dqm_metadata.dqm.trust_score_history ORDER BY computed_at DESC LIMIT 1")
         score = dict(zip(score_cols, score_rows[0]))
