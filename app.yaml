@@ -2,3 +2,5 @@
 env:
   - name: DATABRICKS_HTTP_PATH
     value: "/sql/1.0/warehouses/3142abc42fac6a4c"
+  - name: DATABRICKS_TOKEN
+    value: "dapifc383f216bcb92c29cea34ce4d472d44"
